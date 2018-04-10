@@ -15,7 +15,10 @@ import org.hibernate.criterion.MatchMode;
 import org.hibernate.criterion.Order;
 import org.hibernate.criterion.Projections;
 import org.hibernate.criterion.Restrictions;
+import org.hibernate.criterion.Disjunction;
 import org.hibernate.transform.Transformers;
+
+import play.Logger;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -89,6 +92,22 @@ public class RestaurantService extends BaseService {
 		if (restaurantFilter.cityId != null) {
 			criteria.add(Restrictions.eq("city.id", restaurantFilter.cityId));
 		}
+		
+		if (restaurantFilter.price != 0) {
+			criteria.add(Restrictions.ge("priceRange",restaurantFilter.price));
+		}		
+
+
+		if(restaurantFilter.cuisine != null && restaurantFilter.cuisine[0] != null && !restaurantFilter.cuisine[0].equalsIgnoreCase("")){
+			Criteria cuisineCriteria = criteria.createCriteria("cuisines");
+			Disjunction disjunction = Restrictions.disjunction();
+			for(String singleCuisine : restaurantFilter.cuisine){
+				disjunction.add(Restrictions.eq("name", singleCuisine));
+			}
+				cuisineCriteria.add(disjunction);
+				
+		}
+
 
 		Long numberOfPages = ((Long) criteria.setProjection(Projections.rowCount()).uniqueResult()) / restaurantFilter.pageSize;
 
@@ -104,6 +123,12 @@ public class RestaurantService extends BaseService {
 
 		List<Restaurant> restaurants = criteria.list();
 
+		if (restaurantFilter.rating != 0) {
+			Logger.debug(Integer.toString(restaurantFilter.rating));
+			restaurants = restaurants.stream().filter(r -> getRatingClass(restaurantFilter.rating, r.getAverageRating())).collect(Collectors.toList());
+		}
+
+		//restaurants = restaurants.filter(r -> r.getAverageRating() == restaurantFilter.rating);
 		switch (restaurantFilter.sortBy) {
 			case "rating":
 				restaurants.sort((o1, o2) -> o2.getAverageRating().compareTo(o1.getAverageRating()));
@@ -253,5 +278,21 @@ public class RestaurantService extends BaseService {
 
 		getSession().update(restaurant);
 		return "{ \"imageFor\": \"" + imageUploadForm.getImageType() + "\", \"url\": \"" + newImagePath + "\"}";
+	}
+
+	private Boolean getRatingClass(int filter, double averageRating) {
+		if(averageRating >= 0.25 && filter <= 1) {
+			return true;
+		} else if(averageRating >= 2 && filter <= 2) {
+			return true;
+		} else if(averageRating >= 3 && filter <= 3) {
+			return true;
+		} else if(averageRating >= 4 && filter <= 4) {
+			return true;
+		} else if(averageRating >= 4.75 && filter <= 5) {
+			return true;
+		} else {
+			return false;
+		}
 	}
 }
