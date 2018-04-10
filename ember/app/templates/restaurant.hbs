@@ -75,6 +75,12 @@
               {{model.restaurant.description}}
             </p>
           </div>
+          <div class="restaurant-card">
+            <h2 class="restaurant-card-title">Where to find {{model.restaurant.name}}</h2>
+            <p class="restaurant-card-bodytext">
+              {{google-map markerLat=model.restaurant.latitude markerLng=model.restaurant.longitude}}
+            </p>
+          </div>
           <div id="menu" class="restaurant-card">
             <h2 class="restaurant-card-title floating">Menu:</h2>
             <ul class="nav nav-pills">
